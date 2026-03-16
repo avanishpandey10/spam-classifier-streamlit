@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pickle
 import string
@@ -6,21 +5,32 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 
-# Download required NLTK data
-nltk.download('punkt')
-nltk.download('stopwords')
+# ---- Download NLTK resources safely ----
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
+
+try:
+    nltk.data.find('tokenizers/punkt_tab')
+except LookupError:
+    nltk.download('punkt_tab')
+
+try:
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    nltk.download('stopwords')
 
 ps = PorterStemmer()
 stop_words = set(stopwords.words('english'))
 
-# Text preprocessing
+# ---- Text preprocessing ----
 def transform_text(text):
     text = text.lower()
     text = nltk.word_tokenize(text)
 
     y = []
 
-    # Remove special characters
     for i in text:
         if i.isalnum():
             y.append(i)
@@ -28,7 +38,6 @@ def transform_text(text):
     text = y[:]
     y.clear()
 
-    # Remove stopwords and punctuation
     for i in text:
         if i not in stop_words and i not in string.punctuation:
             y.append(i)
@@ -36,18 +45,23 @@ def transform_text(text):
     text = y[:]
     y.clear()
 
-    # Stemming
     for i in text:
         y.append(ps.stem(i))
 
     return " ".join(y)
 
 
-# Load model and vectorizer
-tfidf = pickle.load(open('vectorizer.pkl', 'rb'))
-model = pickle.load(open('model.pkl', 'rb'))
+# ---- Load model ----
+@st.cache_resource
+def load_model():
+    tfidf = pickle.load(open('vectorizer.pkl', 'rb'))
+    model = pickle.load(open('model.pkl', 'rb'))
+    return tfidf, model
 
-# UI
+
+tfidf, model = load_model()
+
+# ---- UI ----
 st.title("📩 Email/SMS Spam Classifier")
 st.write("Enter a message to check whether it is **Spam** or **Not Spam**.")
 
@@ -70,13 +84,12 @@ if st.button("Predict"):
         prob = model.predict_proba(vector_input)[0][1]
         st.write("Spam Probability:", round(prob * 100, 2), "%")
 
-
 # Footer
 st.markdown("---")
 st.markdown(
     """
     <div style="text-align:center; font-size:14px;">
-        © 2026 <b>Avanish Pandey</b> | 
+        © 2026 <b>Avanish Pandey</b> |
         <a href="https://www.linkedin.com/in/avanish-pandey-976b76253/" target="_blank">
         LinkedIn
         </a>
@@ -84,4 +97,3 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
